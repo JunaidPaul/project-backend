@@ -64,20 +64,36 @@ app.delete('/gitlab/user/:id', function(req, res){
 // receive csv file
 app.post('/gitlab/upload/csv', function(req, res){
 
+
         var body;
+        var files = [];
 
         req.on('data', function (data) {
             body += data;
         });
         req.on('end', function () {
           var csv = body.split('\n');
-          console.log(csv.length);
+          var header = csv[3].split(',');
+
           for(var i=0; i<csv.length; i++){
-            if(i>2 && i<csv.length-2){
-              console.log(csv[i]);
-            }
+            if(i>3 && i<csv.length-2){
+              var row = '';
+              row = csv[i].split(',');
+              var file = {};
+              // add header to the object
+              for(var j=0; j<row.length; j++){
+                file[header[j]] = row[j];
+                if(j == row.length-1){
+                  files.push(file);
+                }
+              }
           }
-          res.status(200);
+        }
+
+          for(var k=0; k<files.length; k++){
+            console.log(files[k]);
+          }
+          res.send(files);
         });
 
 });
