@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "API for multiple user registration",
   "dependencies": {
+    "async": "^1.2.0",
     "body-parser": "*",
     "express": "*",
     "formidable": "^1.0.17",

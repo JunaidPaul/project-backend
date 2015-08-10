@@ -1,7 +1,7 @@
 var express = require("express");
 var bodyparser = require("body-parser");
 var logger = require("./lib/logger");
-var csvData = [];
+var async = require("async");
 // var gitlab = require('gitlab')({
 //   url:   'https://gitlab.com',
 //   token: 'C_uLeyKFmHMrgtDAtyRi'
@@ -12,12 +12,11 @@ var gitlab = require('gitlab')({
   token: 'sMgZCxzCKLEnixCcoyos'
 });
 
-
-
 var app  = express();
 
 // body parser middleware
-app.use(bodyparser.urlencoded({ extended: true }));
+var jsonParser = bodyparser.json()
+app.use(bodyparser.urlencoded({ extended: false}));
 
 app.use(function(req, res, next) {
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -40,17 +39,53 @@ app.get('/gitlab/users/list', function(req, res){
 
 });
 
-app.post('/gitlab/user/create', function(req, res){
+app.post('/gitlab/user/create',jsonParser,  function(req, res){
 
-  // code for creating new user
-  var param = {name: "createtest",username: "createtest",password: "createtest", email: "createtest@test.com"};
-  // var param = {name: req.body.name,username: req.body.username,password: req.body.password, email: req.body.email};
-  gitlab.users.create(param, function(list){
-    if(list){
-      res.status(200).send(list);
-    }else{
-      res.status(500).send("something went wrong");
+  var result = [];
+  var selectedRow = [];
+  var csv = JSON.parse(req.body.data);
+
+  for(var i=0; i<csv.length;i++){
+    if(csv[i].Checked == true){
+      selectedRow.push(csv[i]);
     }
+  }
+
+
+  async.each(selectedRow, function(row, callback) {
+
+
+      console.log("----------------------------------")
+      console.log(row.Name);
+      console.log("----------------------------------")
+
+
+        // set param object to each individula data point
+        var param = {};
+        param.name = row.Name;
+        param.username = row.Name;
+        param.password = row.Email;
+        param.email = row.Email;
+
+        console.log(param);
+
+
+
+        gitlab.users.create(param, function(list){
+          if(list == true){
+              result.push({name: param.name, email: param.email, status: "exist" });
+              callback();
+            }else {
+              result.push({name: list.name, email: list.email, status: "success" });
+              callback();
+
+          }
+        });
+
+
+  }, function (err) {
+        console.log(result);
+        res.json(JSON.stringify(result));
   });
 
 });
@@ -61,29 +96,9 @@ app.delete('/gitlab/user/:id', function(req, res){
 
 });
 
-// receive csv file
-app.post('/gitlab/upload/csv', function(req, res){
-
-        var body;
-
-        req.on('data', function (data) {
-            body += data;
-        });
-        req.on('end', function () {
-          var csv = body.split('\n');
-          console.log(csv.length);
-          for(var i=0; i<csv.length; i++){
-            if(i>2 && i<csv.length-2){
-              console.log(csv[i]);
-            }
-          }
-          res.status(200);
-        });
-
-});
-
 // Port setup
 var port = process.argv[2] || 3000;
+console.log(port);
 
 // Server setup
 var server = app.listen(port, function () {
